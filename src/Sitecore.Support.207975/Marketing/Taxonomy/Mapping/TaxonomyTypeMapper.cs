@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Sitecore.Framework.Conditions;
@@ -11,10 +12,10 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
   public class TaxonomyTypeMapper : ITaxonomyTypeMapper
   {
     /// <summary>The map cache.</summary>
-    private readonly IDictionary<string, IMapper> mapCache = new Dictionary<string, IMapper>();
+    private readonly IDictionary<string, IMapper> _mapCache = new ConcurrentDictionary<string, IMapper>();
 
     /// <summary>The mappers.</summary>
-    private readonly List<IMapper> mappers = new List<IMapper>();
+    private readonly List<IMapper> _mappers = new List<IMapper>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TaxonomyTypeMapper"/> class.
@@ -23,7 +24,7 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
     public TaxonomyTypeMapper([NotNull] IEnumerable<IMapper> mappers)
     {
       Condition.Requires(mappers, nameof(mappers)).IsNotNull();
-      this.mappers.AddRange(mappers);
+      this._mappers.AddRange(mappers);
     }
 
     /// <summary>Maps the specified data.</summary>
@@ -98,8 +99,10 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
     public void AddMapper([NotNull] IMapper mapper)
     {
       Condition.Requires(mapper, "mapper").IsNotNull();
-
-      mappers.Add(mapper);
+      lock (_mappers)
+      {
+        _mappers.Add(mapper);
+      }
     }
 
     /// <summary>Resolves the mapper.</summary>
@@ -111,16 +114,20 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
       Condition.Requires(type, "type").IsNotNull();
       var cacheKey = type.ToString();
 
-      if (mapCache.ContainsKey(cacheKey))
+      if (_mapCache.ContainsKey(cacheKey))
       {
-        return mapCache[cacheKey];
+        return _mapCache[cacheKey];
       }
 
-      var mapper = mappers.FirstOrDefault(b => b.Maps(type));
+      IMapper mapper;
+      lock (_mappers)
+      {
+        mapper = _mappers.FirstOrDefault(b => b.Maps(type));
+      }
 
       if (mapper != null)
       {
-        mapCache[cacheKey] = mapper;
+        _mapCache[cacheKey] = mapper;
       }
 
       if (mapper == null)
