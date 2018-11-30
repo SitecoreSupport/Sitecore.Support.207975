@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Sitecore.Framework.Conditions;
+using Sitecore.Diagnostics;
 using Sitecore.Marketing.Taxonomy.Data.Entities;
 using Sitecore.Marketing.Taxonomy.Mapping;
 
@@ -17,24 +17,14 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
     /// <summary>The mappers.</summary>
     private readonly List<IMapper> _mappers = new List<IMapper>();
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TaxonomyTypeMapper"/> class.
-    /// </summary>
-    /// <param name="mappers">The mappers.</param>
-    public TaxonomyTypeMapper([NotNull] IEnumerable<IMapper> mappers)
-    {
-      Condition.Requires(mappers, nameof(mappers)).IsNotNull();
-      this._mappers.AddRange(mappers);
-    }
-
     /// <summary>Maps the specified data.</summary>
     /// <param name="data">The data source to map.</param>
     /// <param name="type">The type to map the source to.</param>
     /// <returns>The derived object instance.</returns>
     public object Map(TaxonEntity data, Type type)
     {
-      Condition.Requires(type, "type").IsNotNull();
-      Condition.Requires(data, "data").IsNotNull();
+      Assert.ArgumentNotNull(type, "type");
+      Assert.ArgumentNotNull(data, "data");
       var mapper = ResolveMapper(type);
 
       return mapper.Map(data);
@@ -56,7 +46,7 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
     /// <returns>True if successful, otherwise false.</returns>
     public bool TryMap(TaxonEntity data, Type type, out object result)
     {
-      Condition.Requires(type, "type").IsNotNull();
+      Assert.ArgumentNotNull(type, "type");
       try
       {
         var mapper = ResolveMapper(type);
@@ -87,7 +77,7 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
     /// <returns>An instance of <see cref="TaxonEntity" />.</returns>
     public TaxonEntity MapToEntity(object data)
     {
-      Condition.Requires(data, "data").IsNotNull();
+      Assert.ArgumentNotNull(data, "data");
       var type = data.GetType();
       var mapper = ResolveMapper(type);
 
@@ -98,7 +88,7 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
     /// <param name="mapper">The mapper.</param>
     public void AddMapper([NotNull] IMapper mapper)
     {
-      Condition.Requires(mapper, "mapper").IsNotNull();
+      Assert.ArgumentNotNull(mapper, "mapper");
       lock (_mappers)
       {
         _mappers.Add(mapper);
@@ -111,7 +101,7 @@ namespace Sitecore.Support.Marketing.Taxonomy.Mapping
     [NotNull]
     private IMapper ResolveMapper([NotNull] Type type)
     {
-      Condition.Requires(type, "type").IsNotNull();
+      Assert.ArgumentNotNull(type, "type");
       var cacheKey = type.ToString();
 
       if (_mapCache.ContainsKey(cacheKey))
